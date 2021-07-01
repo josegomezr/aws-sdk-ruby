@@ -203,13 +203,81 @@ module Aws
       # @return [String]
       #
       def presigned_url(method, params = {})
+        url, _ = presigned_request(method, **params)
+        return url
+      end
+
+      # Generates a pre-signed Request for this object.
+      #
+      # @example Pre-signed GET Request, valid for one hour
+      #
+      #     obj.presigned_request(:get, expires_in: 3600)
+      #     #=> ["https://bucket-name.s3.amazonaws.com/object-key?...", {}]
+      #
+      # @example Pre-signed PUT with a canned ACL
+      #
+      #     # the object uploaded using this URL will be publicly accessible
+      #     obj.presigned_request(:put, acl: 'public-read')
+      #     #=> ["https://bucket-name.s3.amazonaws.com/object-key?...", {}]
+      #
+      # @example Pre-signed UploadPart PUT
+      #
+      #     # the object uploaded using this URL will be publicly accessible
+      #     obj.presigned_request(:upload_part, part_number: 1,
+      #                           upload_id: 'uploadIdToken')
+      #     #=> ["https://bucket-name.s3.amazonaws.com/object-key?...", {}]
+      #
+      # @param [Symbol] method
+      #   The S3 operation to generate a presigned URL for. Valid values
+      #   are `:get`, `:put`, `:head`, `:delete`, `:create_multipart_upload`,
+      #   `:list_multipart_uploads`, `:complete_multipart_upload`,
+      #   `:abort_multipart_upload`, `:list_parts`, and `:upload_part`.
+      #
+      # @param [Hash] params
+      #   Additional request parameters to use when generating the pre-signed
+      #   URL. See the related documentation in {Client} for accepted
+      #   params.
+      #
+      #   | Method                       | Client Method                      |
+      #   |------------------------------|------------------------------------|
+      #   | `:get`                       | {Client#get_object}                |
+      #   | `:put`                       | {Client#put_object}                |
+      #   | `:head`                      | {Client#head_object}               |
+      #   | `:delete`                    | {Client#delete_object}             |
+      #   | `:create_multipart_upload`   | {Client#create_multipart_upload}   |
+      #   | `:list_multipart_uploads`    | {Client#list_multipart_uploads}    |
+      #   | `:complete_multipart_upload` | {Client#complete_multipart_upload} |
+      #   | `:abort_multipart_upload`    | {Client#abort_multipart_upload}    |
+      #   | `:list_parts`                | {Client#list_parts}                |
+      #   | `:upload_part`               | {Client#upload_part}               |
+      #
+      # @option params [Boolean] :virtual_host (false) When `true` the
+      #   presigned URL will use the bucket name as a virtual host.
+      #
+      #     bucket = Aws::S3::Bucket.new('my.bucket.com')
+      #     bucket.object('key').presigned_request(virtual_host: true)
+      #     #=> ["http://my.bucket.com/key?...", {}]
+      #
+      # @option params [Integer] :expires_in (900) Number of seconds before
+      #   the pre-signed URL expires. This may not exceed one week (604800
+      #   seconds). Note that the pre-signed URL is also only valid as long as
+      #   credentials used to sign it are. For example, when using IAM roles,
+      #   temporary tokens generated for signing also have a default expiration
+      #   which will affect the effective expiration of the pre-signed URL.
+      #
+      # @raise [ArgumentError] Raised if `:expires_in` exceeds one week
+      #   (604800 seconds).
+      #
+      # @return [String]
+      #
+      def presigned_request(method, params = {})
         presigner = Presigner.new(client: client)
 
         if %w(delete head get put).include?(method.to_s)
           method = "#{method}_object".to_sym
         end
 
-        presigner.presigned_url(
+        presigner.presigned_request(
           method.downcase,
           params.merge(bucket: bucket_name, key: key)
         )

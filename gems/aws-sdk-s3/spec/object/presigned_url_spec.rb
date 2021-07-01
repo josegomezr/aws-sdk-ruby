@@ -19,7 +19,7 @@ module Aws
       describe '#presigned_url' do
         context 'method name automatic suffix' do
           let(:presigner) do
-            double("DummyPresigner", presigned_url: 'some url')
+            double("DummyPresigner", presigned_request: ['some url', {}])
           end
 
           before do
@@ -49,7 +49,7 @@ module Aws
                 client: client
               )
 
-              expect(presigner).to receive(:presigned_url).with(
+              expect(presigner).to receive(:presigned_request).with(
                 expected_method,
                 bucket: bucket_name,
                 key: key
@@ -77,6 +77,25 @@ module Aws
             'us-east-1%2Fs3%2Faws4_request&X-Amz-Date=20130524T000000Z&'\
             'X-Amz-Expires=86400&X-Amz-SignedHeaders=host&X-Amz-Signature='\
             '5da845a038b194a3826362ecd698f78fb1e26cb44b25af49263f0a0983870f57'
+          )
+        end
+
+        it 'generates a valid presigned request' do
+          obj = Object.new(
+            bucket_name: 'examplebucket',
+            key: 'test.txt',
+            client: client
+          )
+
+          now = Time.parse('20130524T000000Z')
+          allow(Time).to receive(:now).and_return(now)
+          url = obj.presigned_request(:get, expires_in: 86_400)
+          expect(url).to eq(
+            ['https://examplebucket.s3.amazonaws.com/test.txt?X-Amz-Algorithm='\
+            'AWS4-HMAC-SHA256&X-Amz-Credential=ACCESS_KEY_ID%2F20130524%2F'\
+            'us-east-1%2Fs3%2Faws4_request&X-Amz-Date=20130524T000000Z&'\
+            'X-Amz-Expires=86400&X-Amz-SignedHeaders=host&X-Amz-Signature='\
+            '5da845a038b194a3826362ecd698f78fb1e26cb44b25af49263f0a0983870f57', {}]
           )
         end
 

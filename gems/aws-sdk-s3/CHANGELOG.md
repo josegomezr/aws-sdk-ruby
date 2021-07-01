@@ -1,6 +1,8 @@
 Unreleased Changes
 ------------------
 
+* Feature - Expose presigner_request to Aws::S3::Object
+
 1.96.1 (2021-06-10)
 ------------------
 
